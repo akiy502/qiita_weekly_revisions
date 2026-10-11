@@ -55,6 +55,8 @@ openspec instructions <artifact-id> --change "<name>" --json
 openspec archive <name>                       # アーカイブ
 ```
 
+`--strict` は要件本文に英単語 `SHALL` / `MUST` がないと警告を出し、警告も失敗として扱う。このプロジェクトは要件を日本語（「〜すること」）で書くため、**`should contain SHALL or MUST` の警告だけは無視してよい**。それ以外の警告とエラーは必ず解消する。
+
 ## 記述ルール（`openspec/config.yaml` の要約）
 
 詳細は [openspec/config.yaml](openspec/config.yaml) を参照。要点は以下。
