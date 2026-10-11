@@ -361,3 +361,6 @@ healthchecksdb
 
 # Claude Code tool-use logs (written by hooks)
 .claude/logs/
+
+# 手作業で取得した一時データ
+tmp/
