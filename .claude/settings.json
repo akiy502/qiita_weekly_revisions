@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+  },
+  "permissions": {
+    "allow": [
+      "Agent",
+      "WebSearch",
+      "mcp__plugin_power-pages_microsoft-learn__microsoft_docs_search",
+      "mcp__plugin_power-pages_microsoft-learn__microsoft_docs_fetch"
+    ],
+    "deny": [
+      "Bash(sudo *)",
+      "Bash(su *)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(rm -rf $HOME*)",
+      "Bash(chmod 777 *)",
+      "Bash(chmod -R 777 *)",
+      "Bash(curl * | sh)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(wget * | bash)",
+      "Bash(dd if=*)",
+      "Bash(mkfs*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.azure/**)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Edit(./.env)",
+      "Edit(./.env.*)"
+    ],
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git -C * commit *)",
+      "Bash(git push *)",
+      "Bash(git reset *)",
+      "Bash(git clean -fd*)",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)",
+      "Bash(npx -y *)",
+      "Bash(npx --yes *)",
+      "Bash(pip install *)",
+      "Bash(uv add *)",
+      "Bash(uv pip install *)",
+      "Bash(uv tool install *)",
+      "Bash(dotnet add *)",
+      "WebFetch",
+      "Bash(az login*)",
+      "Bash(az logout*)",
+      "Bash(az account set *)",
+      "Bash(az group delete *)",
+      "Bash(az resource delete *)",
+      "Bash(az * delete *)",
+      "Bash(az role assignment *)",
+      "Bash(az ad app *)",
+      "Bash(az policy *)",
+      "Bash(az deployment * create *)",
+      "Bash(pac auth create *)",
+      "Bash(pac auth select *)",
+      "Bash(pac auth delete *)",
+      "Bash(pac solution import *)",
+      "Bash(pac solution delete *)",
+      "Bash(pac solution publish *)",
+      "Bash(pac plugin push *)",
+      "Bash(pac pcf push *)",
+      "Bash(pac org delete *)",
+      "Bash(pac admin delete *)",
+      "Bash(pac data import *)",
+      "Bash(func azure functionapp publish *)",
+      "Bash(func azure functionapp delete *)",
+      "Bash(func azure storage *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "network": {
+      "allowedDomains": [
+        "api.anthropic.com",
+        "registry.npmjs.org",
+        "github.com",
+        "objects.githubusercontent.com",
+        "raw.githubusercontent.com",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "api.nuget.org",
+        "login.microsoftonline.com",
+        "management.azure.com",
+        "graph.microsoft.com",
+        "learn.microsoft.com",
+        "aka.ms",
+        "*.dynamics.com",
+        "*.crm.dynamics.com",
+        "*.api.powerplatform.com",
+        "api.powerplatform.com",
+        "*.azurewebsites.net",
+        "*.core.windows.net",
+        "pkgs.dev.azure.com",
+        "context7.com",
+        "*.context7.com"
+      ]
+    },
+    "filesystem": {
+      "denyWrite": [
+        "~/"
+      ],
+      "denyRead": [
+        "~/",
+        "/mnt/*/"
+      ],
+      "allowRead": [
+        ".",
+        "~/.nvm/versions/",
+        "~/.nvm/alias/",
+        "~/.nvm/nvm.sh",
+        "~/.gitconfig"
+      ]
+    },
+    "excludedCommands": [
+      "az *",
+      "pac *",
+      "func *"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=\"${CLAUDE_PROJECT_DIR:-.}/.claude/logs\"; mkdir -p \"$d\"; jq -c --argjson ts \"$(date +%s)\" --arg ev PreToolUse '{ts:$ts,event:(.hook_event_name // $ev),session:.session_id,tool:.tool_name,input:.tool_input}' >> \"$d/tool-use.jsonl\" 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=\"${CLAUDE_PROJECT_DIR:-.}/.claude/logs\"; mkdir -p \"$d\"; jq -c --argjson ts \"$(date +%s)\" --arg ev PermissionRequest '{ts:$ts,event:(.hook_event_name // $ev),session:.session_id,tool:.tool_name,input:.tool_input}' >> \"$d/tool-use.jsonl\" 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
