@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="theme-color"
+      content="#f7f8f6"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#141715"
+      media="(prefers-color-scheme: dark)"
+    />
+    <title>Qiita 週間トレンドの過去の版</title>
+    <style>
+      :root {
+        --bg: #f7f8f6;
+        --surface: #ffffff;
+        --text: #1f2421;
+        --muted: #5c6660;
+        --border: #d8ddd9;
+        --accent: #2f7d00;
+        --accent-contrast: #ffffff;
+        --read-bg: #eef0ee;
+        --read-text: #5c6660;
+        --danger: #b42318;
+        --focus: #1a73e8;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #141715;
+          --surface: #1d211f;
+          --text: #e6ebe7;
+          --muted: #9aa59e;
+          --border: #343a36;
+          --accent: #7ed957;
+          --accent-contrast: #102000;
+          --read-bg: #252a27;
+          --read-text: #9aa59e;
+          --danger: #ff8a7a;
+          --focus: #8ab4f8;
+        }
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-padding-top: 72px;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          "Hiragino Sans",
+          "Noto Sans JP",
+          sans-serif;
+        line-height: 1.6;
+        -webkit-text-size-adjust: 100%;
+      }
+      main {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      h1 {
+        margin: 8px 0 4px;
+        font-size: 1.375rem;
+        line-height: 1.3;
+        text-wrap: balance;
+      }
+      .lead {
+        margin: 0 0 16px;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+      a {
+        color: var(--accent);
+      }
+      a,
+      button,
+      label,
+      summary {
+        -webkit-tap-highlight-color: transparent;
+      }
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+        align-items: center;
+        margin: 0 -16px 16px;
+        padding: 8px 16px;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+      }
+      .toggle {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        min-height: 44px;
+        cursor: pointer;
+      }
+      .toggle input {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        accent-color: var(--accent);
+      }
+      .notice {
+        margin: 0 0 16px;
+        padding: 8px 12px;
+        border: 1px solid var(--danger);
+        border-radius: 8px;
+        color: var(--danger);
+        font-size: 0.875rem;
+      }
+      .notice[hidden] {
+        display: none;
+      }
+      .empty {
+        padding: 24px 0;
+        color: var(--muted);
+        text-align: center;
+      }
+      .year {
+        margin: 0 0 24px;
+      }
+      .year > h2 {
+        margin: 0 0 8px;
+        font-size: 1.125rem;
+      }
+      .month {
+        display: grid;
+        grid-template-columns: 3.5em minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        padding: 8px 0;
+        border-top: 1px solid var(--border);
+      }
+      .month > h3 {
+        margin: 0;
+        padding-top: 10px;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .days {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .day {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .day a {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 12px;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+        text-decoration: none;
+        touch-action: manipulation;
+      }
+      .day a:hover {
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+      }
+      .mark {
+        color: var(--accent);
+        font-size: 0.75rem;
+      }
+      .state {
+        font-size: 0.75rem;
+      }
+      .day.is-read {
+        background: var(--read-bg);
+      }
+      .day.is-read a {
+        color: var(--read-text);
+      }
+      .day.is-read .mark {
+        color: var(--read-text);
+      }
+      .unread-button {
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0 10px;
+        border: 0;
+        border-left: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.75rem;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      .unread-button:hover {
+        color: var(--text);
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      .backup {
+        margin: 32px 0 16px;
+        padding: 12px 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+      .backup summary h2 {
+        display: inline;
+        margin: 0;
+        font-size: 1rem;
+      }
+      .backup summary {
+        min-height: 44px;
+        padding: 10px 0;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .backup h3 {
+        margin: 16px 0 8px;
+        font-size: 1rem;
+      }
+      .backup p {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 8px 0;
+      }
+      .button {
+        min-height: 44px;
+        padding: 0 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+      .button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: var(--accent-contrast);
+      }
+      fieldset {
+        margin: 8px 0;
+        padding: 0;
+        border: 0;
+      }
+      legend {
+        margin-bottom: 4px;
+        font-size: 0.875rem;
+      }
+      .radio {
+        display: inline-flex;
+        gap: 6px;
+        align-items: center;
+        min-height: 44px;
+        margin-right: 16px;
+        cursor: pointer;
+      }
+      label.block {
+        display: block;
+        margin: 8px 0 4px;
+        font-size: 0.875rem;
+      }
+      textarea {
+        display: block;
+        width: 100%;
+        min-height: 6em;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          0.875rem/1.5 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      input[type="file"] {
+        max-width: 100%;
+        font: inherit;
+        font-size: 0.875rem;
+      }
+      .message {
+        min-height: 1.6em;
+        margin: 8px 0 0;
+        font-size: 0.875rem;
+      }
+      .message.is-error {
+        color: var(--danger);
+      }
+      footer {
+        padding: 16px 0 32px;
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Qiita 週間トレンドの過去の版</h1>
+      <p class="lead">
+        日付を選ぶと、<a
+          href="https://qiita.com/Qiita/items/b5c1550c969776b65b9b"
+          target="_blank"
+          rel="noopener"
+          >週間トレンド記事一覧</a
+        >のその日の版を新しいタブで開きます（日付は日本時間）。
+      </p>
+
+      <div class="toolbar">
+        <label class="toggle">
+          <input type="checkbox" id="unread-only" name="unread-only" />
+          未読のみ
+        </label>
+      </div>
+
+      <p class="notice" id="storage-notice" role="status" hidden>
+        このブラウザでは既読を保存できません。ページを閉じると既読の記録は消えます。プライベートブラウズを使っている場合は、通常のウィンドウで開いてください。
+      </p>
+
+      <noscript
+        ><p class="empty">
+          このページの表示には JavaScript が必要です。
+        </p></noscript
+      >
+
+      <div id="revisions"></div>
+
+      <details class="backup">
+        <summary>
+          <h2>既読データのバックアップ（エクスポート／インポート）</h2>
+        </summary>
+
+        <h3>エクスポート</h3>
+        <p>
+          既読の記録は、このブラウザの中にだけ保存されます。別の端末に移すときや、バックアップを取るときに使ってください。
+          Safari では 7
+          日間このページを開かないと既読が消えることがあります。ホーム画面に追加して開くと消えにくくなります。
+        </p>
+        <div class="buttons">
+          <button type="button" class="button" id="export-file">
+            ファイルにエクスポート
+          </button>
+          <button type="button" class="button" id="export-text">
+            テキストでコピー
+          </button>
+        </div>
+        <label
+          class="block"
+          for="export-output"
+          id="export-output-label"
+          hidden
+        >
+          コピーできなかったため、次のテキストを選択してコピーしてください
+        </label>
+        <textarea
+          id="export-output"
+          name="export-output"
+          readonly
+          hidden
+        ></textarea>
+        <p class="message" id="export-message" role="status"></p>
+
+        <h3>インポート</h3>
+        <fieldset>
+          <legend>読み込み方法</legend>
+          <label class="radio"
+            ><input
+              type="radio"
+              name="import-mode"
+              value="merge"
+              checked
+            />マージ（今の既読に追加）</label
+          >
+          <label class="radio"
+            ><input
+              type="radio"
+              name="import-mode"
+              value="replace"
+            />上書き（今の既読を置き換え）</label
+          >
+        </fieldset>
+        <label class="block" for="import-file">ファイルから読み込む</label>
+        <input
+          type="file"
+          id="import-file"
+          name="import-file"
+          accept="application/json,.json"
+        />
+        <label class="block" for="import-text"
+          >テキストを貼り付けて読み込む</label
+        >
+        <textarea
+          id="import-text"
+          name="import-text"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder='{"app":"qiita-weekly-revisions", …}'
+        ></textarea>
+        <div class="buttons">
+          <button type="button" class="button primary" id="import-text-button">
+            貼り付けた内容を読み込む
+          </button>
+        </div>
+        <p class="message" id="import-message" role="status"></p>
+      </details>
+
+      <footer>版の一覧は週 2 回（木曜・日曜の朝）自動で更新されます。</footer>
+    </main>
+    <script src="revisions.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

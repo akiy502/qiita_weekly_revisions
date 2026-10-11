@@ -2,7 +2,7 @@
 
 - 動機と範囲は proposal.md を、振る舞いは各 spec を参照する。
 - リポジトリにはまだアプリケーションコードがなく、OpenSpec と Claude Code の設定だけがある。Git リモートは未設定で、ブランチは `master` である。
-- Qiita API v2 には編集履歴のエンドポイントがない。revisions ページの HTML には `data-component-name="ArticleRevisionsIndexPage"` を持つ `<script>` 要素があり、その中に HTML エスケープされた JSON が入っている。版一覧はその JSON の `article.paginatedSnapshots.items[]`（`createdAt`、`encryptedId`）にあり、ページ情報は `pageData.isLastPage` にある。1 ページは 10 件である。
+- Qiita API v2 には編集履歴のエンドポイントがない。revisions ページの HTML には `data-component-name="ArticleRevisionsIndexPage"` を持つ `<script>` 要素があり、その中（`type="application/json"`）に JSON がそのまま入っている。版一覧はその JSON の `article.paginatedSnapshots.items[]`（`createdAt`、`encryptedId`）にあり、ページ情報は `pageData.isLastPage` にある。1 ページは 10 件である。
 - 版のプレビューを開く URL は `/Qiita/items/b5c1550c969776b65b9b/revisions?id=<encodeURIComponent(encryptedId)>` であることを、ユーザーが PC のブラウザで確認済みである。iPhone での表示確認は、ユーザーの判断で省略した。
 - `encryptedId` は `<base64("\"ArticleSnapshot-<数値>\"")>--<署名>` という形である。前半を base64 デコードすると版の数値 ID が得られる。
 - revisions の HTML は CORS ヘッダーを返さないため、ブラウザからは取得できない。
@@ -24,7 +24,7 @@
 ## Decisions
 
 ### D1. 版一覧の取得元は revisions ページの埋め込み JSON にする
-- `revisions?page=N` を取得し、`ArticleRevisionsIndexPage` の `<script>` 要素の中身を取り出す。HTML 実体参照（`&quot;` `&amp;` `&lt;` `&gt;` `&#39;` と数値参照）を戻してから `JSON.parse` する。
+- `revisions?page=N` を取得し、`ArticleRevisionsIndexPage` の `<script>` 要素の中身を取り出す。中身は HTML 実体参照でエスケープされていない生の JSON なので、そのまま `JSON.parse` する（実体参照を戻すと、本文中の `&amp;` などを壊すため戻さない）。
 - 却下した代替案:
   - Qiita API v2: エンドポイントがない。
   - Playwright などのヘッドレスブラウザ: CI が重くなるうえ、必要なデータは HTML に既に入っている。
@@ -45,10 +45,12 @@
 
 ### D4. 差分取得の停止条件
 - `page=1` から順に取得し、ページ内に既知の snapshotId が 1 つでもあれば、そのページの未知の版だけを追加して停止する。既知の版がなければ、`isLastPage === true` になるまで続ける。
+- 1 リクエストのタイムアウトは 30 秒とし、超えたら通信失敗として扱う（応答のないまま CI ジョブが止まり続けるのを防ぐ）。CLI は取得中のページ番号を stderr に出す。
 - リクエストは直列にし、各リクエストの開始から次の開始まで 1 秒以上空ける。User-Agent にはリポジトリ URL を含める。
 - 新しい版がなければファイルに書き込まない。
 
-### D5. 閲覧ページは単一の `site/index.html` にする
+### D5. 閲覧ページは `site/index.html` と `site/app.js` にする
+- マークアップとスタイルは `index.html`、スクリプトは `app.js` に置く。Oxlint は HTML 内のスクリプトを検査できないためである。`file://` ではモジュールスクリプトを読み込めないので、`app.js` は `type="module"` を付けない通常のスクリプトにする。
 - フレームワークは使わない。描画は `REVISIONS` を JST の年・月でまとめて DOM を作るだけである。JST の変換は `Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo" })` を使う。
 - 各版は `<a href=… target="_blank" rel="noopener">` で表示する。`click` と `auxclick`（中クリック）で既読を記録する。リンクにしておくことで、長押しメニューや新しいタブでも開ける。
 - 既読の版には「✓」の記号と「既読」の視覚的ラベルを付ける。あわせて「未読に戻す」ボタンを表示する。
@@ -85,8 +87,9 @@
 - 前提: `gh` がインストール済みで、`gh auth login` 済みであること。
 - 手順は次のとおり。どの段階も「既にあれば何もしない」ように書き、再実行できるようにする:
   1. 現在のブランチが `master` なら `main` に改名する。
-  2. `gh repo view <owner>/qiita_weekly_revisions` で存在を確かめる。なければ `gh repo create qiita_weekly_revisions --public --source . --remote origin --push` を実行する。
+  2. `gh repo view <owner>/qiita_weekly_revisions` で存在を確かめる。なければ `gh repo create qiita_weekly_revisions --public` で作成し、`origin` がなければ追加する。
   3. `gh api repos/<owner>/qiita_weekly_revisions/pages` で状態を確かめる。未設定なら `POST`（`build_type=workflow`）、設定済みで種類が違えば `PUT` を送る。
+  4. `git push -u origin main` を実行する。Pages を有効にする前に push すると、`update.yml` のデプロイが失敗するため、push は最後に行う。
 - 未コミットの変更がある場合は、push 前に警告して中断する。
 - 却下した代替案: Terraform。個人用の 1 リポジトリでは、state と PAT の管理の手間が見合わない。
 

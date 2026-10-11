@@ -1,0 +1,19 @@
+{
+  "name": "qiita_weekly_revisions",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch": "node scripts/fetch-revisions.mjs",
+    "test": "node --test",
+    "check": "ultracite check scripts site .github package.json oxlint.config.ts oxfmt.config.ts",
+    "fix": "ultracite fix scripts site .github package.json oxlint.config.ts oxfmt.config.ts"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.87.0",
+    "ultracite": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
