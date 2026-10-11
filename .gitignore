@@ -358,3 +358,6 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+
+# Claude Code tool-use logs (written by hooks)
+.claude/logs/
