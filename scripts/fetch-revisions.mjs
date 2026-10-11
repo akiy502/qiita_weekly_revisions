@@ -8,16 +8,10 @@ const dataPath = fileURLToPath(
 const repository = process.env.GITHUB_REPOSITORY ?? "qiita_weekly_revisions";
 const userAgent = `qiita_weekly_revisions (+https://github.com/${repository})`;
 
-const fetchQiitaPage = createPageFetcher({ userAgent });
-const fetchPage = (page) => {
-  process.stderr.write(`page=${page} を取得中\n`);
-  return fetchQiitaPage(page);
-};
-
 try {
   const result = await updateDataFile({
     dataPath,
-    fetchPage,
+    fetchPage: createPageFetcher({ userAgent }),
   });
   const summary = result.written
     ? `${result.added} 件の新しい版を追加しました（合計 ${result.total} 件）`
