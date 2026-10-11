@@ -285,3 +285,68 @@ describe("fetch-revisions.mjs", () => {
     assert.match(child.stderr, /HTTP 503/u);
   });
 });
+
+const timeoutError = () =>
+  Object.assign(new Error("The operation was aborted due to timeout"), {
+    name: "TimeoutError",
+  });
+
+describe("createPageFetcher", () => {
+  it("タイムアウトしたら待ってから再試行し、成功すれば本文を返す", async () => {
+    const delays = [];
+    let calls = 0;
+    const fetchPage = createPageFetcher({
+      fetchImpl: () => {
+        calls += 1;
+        return calls <= 2
+          ? Promise.reject(timeoutError())
+          : Promise.resolve(new Response("ok", { status: 200 }));
+      },
+      userAgent: "test",
+      wait: (ms) => {
+        delays.push(ms);
+        return Promise.resolve();
+      },
+    });
+
+    assert.equal(await fetchPage(1), "ok");
+    assert.equal(calls, 3);
+    assert.deepEqual(delays, [5000, 10_000]);
+  });
+
+  it("再試行を 3 回しても失敗したら取得エラーになる", async () => {
+    let calls = 0;
+    const fetchPage = createPageFetcher({
+      fetchImpl: () => {
+        calls += 1;
+        return Promise.reject(timeoutError());
+      },
+      userAgent: "test",
+      wait: () => Promise.resolve(),
+    });
+
+    await assert.rejects(fetchPage(1), {
+      kind: "fetch",
+      name: "RevisionError",
+    });
+    assert.equal(calls, 4);
+  });
+
+  it("HTTP 503 は再試行しない", async () => {
+    let calls = 0;
+    const fetchPage = createPageFetcher({
+      fetchImpl: () => {
+        calls += 1;
+        return Promise.resolve(new Response("unavailable", { status: 503 }));
+      },
+      userAgent: "test",
+      wait: () => Promise.resolve(),
+    });
+
+    await assert.rejects(fetchPage(1), {
+      kind: "fetch",
+      name: "RevisionError",
+    });
+    assert.equal(calls, 1);
+  });
+});

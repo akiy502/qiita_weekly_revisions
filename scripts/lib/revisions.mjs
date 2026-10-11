@@ -5,7 +5,9 @@ export const ARTICLE_URL = "https://qiita.com/Qiita/items/b5c1550c969776b65b9b";
 export const REVISIONS_URL = `${ARTICLE_URL}/revisions`;
 export const REQUEST_INTERVAL_MS = 1000;
 export const MAX_PAGES = 1000;
-export const REQUEST_TIMEOUT_MS = 30_000;
+export const REQUEST_TIMEOUT_MS = 60_000;
+/** タイムアウトと通信エラーのときに再試行するまでの待ち時間（再試行は最大 3 回）。 */
+export const RETRY_DELAYS_MS = [5000, 10_000, 20_000];
 
 const DATA_PREFIX = "window.REVISIONS = ";
 const DATA_SUFFIX = ";\n";
@@ -171,25 +173,41 @@ export const collectRevisions = async ({
   throw parseError(`${MAX_PAGES} ページを超えても最終ページに達しません`);
 };
 
-/** qiita.com から revisions ページを 1 ページ取得する。 */
-export const createPageFetcher =
-  ({ fetchImpl = fetch, userAgent }) =>
-  async (page) => {
-    const url = `${REVISIONS_URL}?page=${page}`;
+/**
+ * qiita.com から revisions ページを 1 ページ取得する。
+ * タイムアウトと通信エラーは RETRY_DELAYS_MS の間隔で再試行し、HTTP ステータスのエラーは再試行しない。
+ */
+export const createPageFetcher = ({
+  fetchImpl = fetch,
+  userAgent,
+  wait = sleep,
+}) => {
+  const attemptFetch = async (url, attempt) => {
     let response;
+    let body;
     try {
       response = await fetchImpl(url, {
         headers: { "User-Agent": userAgent },
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
+      body = response.status === 200 ? await response.text() : undefined;
     } catch (error) {
-      throw fetchError(`取得に失敗しました: ${url} (${error.message})`);
+      if (attempt >= RETRY_DELAYS_MS.length) {
+        throw fetchError(
+          `取得に失敗しました（${attempt + 1} 回試行）: ${url} (${error.message})`
+        );
+      }
+      await wait(RETRY_DELAYS_MS[attempt]);
+      return attemptFetch(url, attempt + 1);
     }
     if (response.status !== 200) {
       throw fetchError(`HTTP ${response.status} が返りました: ${url}`);
     }
-    return response.text();
+    return body;
   };
+
+  return (page) => attemptFetch(`${REVISIONS_URL}?page=${page}`, 0);
+};
 
 const readExisting = async (dataPath) => {
   try {
