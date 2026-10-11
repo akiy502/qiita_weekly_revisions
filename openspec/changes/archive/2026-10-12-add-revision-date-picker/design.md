@@ -98,6 +98,7 @@
 
 ## Risks / Trade-offs
 
+- **[既知の不具合] `?page=N` は Qiita に無視され、常に 1 ページ目が返る。** そのため D1・D4 の全件取得は最終ページに達せず、完了しない（783 ページまで達しないことを確認）。D1・D4 と spec `revision-collection` の「版一覧の取得」は、この誤った前提に基づいている。経緯は `docs/post-mortems/2026-10-11-unverified-page-parameter.md` を参照。修正は change `fix-revision-fetch` で行う。それまでは `npm run fetch` と `scripts/bootstrap.sh` を実行しない。
 - [Qiita の HTML 構造が変わり、取得が失敗する] → 取得スクリプトは失敗時に 0 以外で終了し、データファイルを変更しない。ワークフローは失敗として通知され、公開中のページは前回の状態のまま残る。
 - [GitHub の schedule は遅れたり、実行がとばされたりすることがある] → 版は消えないので、次の実行か手動実行で差分を取り戻せる。
 - [public リポジトリでは、60 日間活動がないと schedule が自動で無効化される] → 版は週 2 回増え、そのたびに commit されるため、通常は該当しない。無効化されたら、Actions 画面から再度有効にする。
@@ -106,6 +107,8 @@
 - [作業ディレクトリに、追跡されていないドットファイル（`.bashrc`、`.gitconfig` など）がある] → `bootstrap.sh` は commit 済みの内容だけを push する。tasks で push 前に `git ls-files` を確認する。
 
 ## Migration Plan
+
+※ 既知の不具合（Risks の先頭を参照）のため、以下の手順 2 以降は、この change では実施しない。change `fix-revision-fetch` で取得を直した後に実施する。
 
 1. ユーザーが `gh` をインストールし、`gh auth login` を実行する。
 2. 実装を commit し、ユーザーが `scripts/bootstrap.sh` を実行する。これでリポジトリの作成、push、Pages の有効化が行われる。
